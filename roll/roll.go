@@ -48,7 +48,7 @@ type RollResult struct {
 
 // RollSpec defines the basic unit of a parsed roll.
 type RollSpec struct {
-	Multiplier int  // Must be non-negative, zero is a troll.
+	Multiplier int // Must be non-negative, zero is a troll.
 	Die        int
 	Modifier   int
 }

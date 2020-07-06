@@ -59,7 +59,7 @@ func main() {
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
-  // TODO: automatically retry failed connections a few times with a backoff.
+	// TODO: automatically retry failed connections a few times with a backoff.
 	fmt.Println("I have no dice, but I must roll. Press CTRL-C to exit.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
@@ -74,7 +74,7 @@ func fmtSay(s *discordgo.Session, m *discordgo.MessageCreate, msg string, args .
 }
 
 func handleRollRequest(s *discordgo.Session, m *discordgo.MessageCreate) {
-  p := Player{
+	p := Player{
 		ID:   m.Author.ID,
 		Name: m.Author.Username,
 	}
