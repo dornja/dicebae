@@ -1,4 +1,4 @@
 # dicebae
 I have no dice, but I must roll
 
-This is a README!
+go build cmd/dicebae.go && ./dicebae --key=<SomeDiscordBotAPIKey>

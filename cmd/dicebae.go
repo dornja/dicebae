@@ -27,7 +27,7 @@ var (
 // to track NPCs rolling.
 type RollHistory struct {
 	PlayersSeen   []*Player
-	ResponsesByID map[Player][]roll.PlayerRollResponse
+	ResponsesByID map[Player][]roll.RollResponse
 }
 
 type Player struct {
@@ -41,7 +41,7 @@ func main() {
 		fmt.Println("You need to provide --key=<the dicebae API key>")
 		return
 	}
-	history.ResponsesByID = make(map[Player][]roll.PlayerRollResponse)
+	history.ResponsesByID = make(map[Player][]roll.RollResponse)
 	dg, err := discordgo.New("Bot " + *apiKey)
 	if err != nil {
 		fmt.Errorf("Error: %v", err)
@@ -57,6 +57,7 @@ func main() {
 		fmt.Println("error opening connection,", err)
 		return
 	}
+	defer dg.Close()
 
 	// Wait here until CTRL-C or other term signal is received.
 	// TODO: automatically retry failed connections a few times with a backoff.
@@ -64,9 +65,6 @@ func main() {
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
-
-	// Cleanly close down the Discord session.
-	dg.Close()
 }
 
 func fmtSay(s *discordgo.Session, m *discordgo.MessageCreate, msg string, args ...interface{}) {
@@ -79,7 +77,7 @@ func handleRollRequest(s *discordgo.Session, m *discordgo.MessageCreate) {
 		Name: m.Author.Username,
 	}
 	msg := m.Content
-	req, err := roll.ParseRequest(msg)
+	req, err := roll.ParseRollRequest(msg)
 	if err != nil {
 		msg := fmt.Sprintf("%s: I beefed it on your roll: %v", p.AtPlayer(), err)
 		s.ChannelMessageSend(m.ChannelID, msg)
