@@ -116,6 +116,7 @@ func (rr *RollResult) String() string {
 	return strings.Join(s, "")
 }
 
+// HasRollRequest returns whether a user's free-form text includes a dice roll.
 func HasRollRequest(msg string) bool {
 	return len(rollRegexp.FindAllStringSubmatch(msg, -1)) > 0
 }
