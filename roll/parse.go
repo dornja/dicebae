@@ -2,106 +2,66 @@ package roll
 
 import (
 	"fmt"
-	"regexp"
+	//	"math/rand"
 	"strconv"
 	"strings"
-	"time"
 )
 
-var (
-	rollRegexp = regexp.MustCompile(`(\d*)\s*[dD](\d+)\s*([+-]\s*\d+)?`)
-
-	maxAbsModifier   = 100
-	maxDieSize       = 1000
-	maxComputedRolls = 100000000
-)
-
-type rollTokens struct {
-	multiplier string
-	die        string
-	modifier   string
-}
-
-// HasRollRequest returns whether a user's free-form text includes a dice roll.
-func HasRollRequest(msg string) bool {
-	return len(rollRegexp.FindAllStringSubmatch(msg, -1)) > 0
-}
-
-// ParseRequest returns whether a user's free-form text includes a dice roll.
-func ParseRollRequest(msg string) (*RollRequest, error) {
-	var specs []*RollSpec
+func parseRollRequests(msg string) ([]*RollRequest, error) {
+	var ret []*RollRequest
 	var errs []error
-	var isTroll bool
-	var trollMsg string
 	for _, sub := range rollRegexp.FindAllStringSubmatch(msg, -1) {
-		tk := &rollTokens{
-			multiplier: sub[1],
-			die:        sub[2],
-			modifier:   sub[3],
-		}
-		r, err := parseRollTokens(tk)
+		mulStr, dieStr, modStr := sub[1], sub[2], sub[3]
+
+		var perrs []string
+		mul, err := parseMultiplier(mulStr)
 		if err != nil {
-			errs = append(errs, err)
-			continue
+			perrs = append(perrs, err.Error())
 		}
-		// Validate strings before parsing for weird input.
-		switch {
-		case r.Multiplier > maxComputedRolls:
-			isTroll = true
-			trollMsg = "I ain't got that many dice."
-		case r.Die < 2:
-			isTroll = true
-			trollMsg = fmt.Sprintf("A %d-sided die is pointless, you ass.", r.Die)
-		case r.Die > maxDieSize:
-			isTroll = true
-			trollMsg = fmt.Sprintf("A d%d is basically a sphere, wtf.", r.Die)
-		case r.Modifier > maxAbsModifier:
-			isTroll = true
-			trollMsg = "You can't add that much to a modifier, that's unreasonable."
-		case r.Modifier < -maxAbsModifier:
-			isTroll = true
-			trollMsg = "You can't subtract that much from a modifier, that's unreasonable."
+		die, err := parseDie(dieStr)
+		if err != nil {
+			perrs = append(perrs, err.Error())
 		}
-		specs = append(specs, r)
+		mod, err := parseModifier(modStr)
+		if err != nil {
+			perrs = append(perrs, err.Error())
+		}
+		if len(perrs) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"failed to parse, mul:%q, die:%q, mod:%q: %q",
+				mulStr, dieStr, modStr, strings.Join(perrs, ", "),
+			))
+		}
+		r := &RollRequest{
+			Multiplier: mul,
+			Die:        die,
+			Modifier:   mod,
+		}
+		r.TrollMsg = checkForTrolls(r)
+
+		ret = append(ret, r)
 	}
 	if len(errs) > 0 {
-		return nil, fmt.Errorf("failed to parse rolls: %v", errs)
+		return nil, fmt.Errorf("roll parsing failed: %v", errs)
 	}
-	return &RollRequest{
-		Timestamp: time.Now(),
-		Specs:     specs,
-		IsTroll:   isTroll,
-		TrollMsg:  trollMsg,
-	}, nil
+	return ret, nil
 }
 
-func parseRollTokens(rt *rollTokens) (*RollSpec, error) {
-	if rt == nil {
-		return nil, fmt.Errorf("passed tokens are nil")
+func checkForTrolls(r *RollRequest) string {
+	// Validate strings before parsing for weird input.
+	switch {
+	case r.Multiplier > maxComputedRolls:
+		return "I ain't got that many dice."
+	case r.Die < 2:
+		return fmt.Sprintf("A %d-sided die is pointless, you ass.", r.Die)
+	case r.Die > maxDieSize:
+		return fmt.Sprintf("A d%d is basically a sphere, wtf.", r.Die)
+	case r.Modifier > maxAbsModifier:
+		return "You can't add that much to a modifier, that's unreasonable."
+	case r.Modifier < -maxAbsModifier:
+		return "You can't subtract that much from a modifier, that's unreasonable."
 	}
-
-	var errs []error
-	mul, err := parseMultiplier(rt.multiplier)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	die, err := parseDie(rt.die)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	mod, err := parseModifier(rt.modifier)
-	if err != nil {
-		errs = append(errs, err)
-	}
-	if len(errs) > 0 {
-		return nil, fmt.Errorf("failed to parse %+v: %v", *rt, errs)
-	}
-
-	return &RollSpec{
-		Multiplier: mul,
-		Die:        die,
-		Modifier:   mod,
-	}, nil
+	return ""
 }
 
 func parseMultiplier(mul string) (int, error) {

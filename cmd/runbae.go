@@ -1,39 +1,18 @@
+// Package main runs the bae forever.
 package main
 
 import (
 	"flag"
 	"fmt"
-	"os"
-	"os/signal"
-	"strings"
-	"syscall"
 
-	"dicebae/roll"
-
-	"github.com/bwmarrin/discordgo"
+	"dicebae"
 )
 
 var (
 	apiKey = flag.String("key", "", "The Bot API key, it's a secret to everyone.")
 
-	history         RollHistory
 	maxShownHistory = 10
 )
-
-// RollHistory should actually be a singleton or something, it stores rolls. It
-// should also have a goroutine that syncs it out to disk now and then, and
-// restores state upon at start. Also we're not using PlayersSeen, it should be
-// a deterministic, sorted order for the map. Also, could build some cool stuff
-// to track NPCs rolling.
-type RollHistory struct {
-	PlayersSeen   []*Player
-	ResponsesByID map[Player][]roll.RollResponse
-}
-
-type Player struct {
-	ID   string
-	Name string
-}
 
 func main() {
 	flag.Parse()
@@ -41,36 +20,16 @@ func main() {
 		fmt.Println("You need to provide --key=<the dicebae API key>")
 		return
 	}
-	history.ResponsesByID = make(map[Player][]roll.RollResponse)
-	dg, err := discordgo.New("Bot " + *apiKey)
+	db, err := dicebae.NewBae(&dicebae.Baergs{APIKey: *apiKey})
 	if err != nil {
-		fmt.Errorf("Error: %v", err)
-		return
+		fmt.Errorf("Failed to create the bae: %v", err)
 	}
-
-	// Register the messageCreate func as a callback for MessageCreate events.
-	dg.AddHandler(messageCreate)
-
-	// Open a websocket connection to Discord and begin listening.
-	err = dg.Open()
-	if err != nil {
-		fmt.Println("error opening connection,", err)
-		return
+	if err := db.LetsRoll(); err != nil {
+		fmt.Errorf("This bae won't roll: %v", err)
 	}
-	defer dg.Close()
-
-	// Wait here until CTRL-C or other term signal is received.
-	// TODO: automatically retry failed connections a few times with a backoff.
-	fmt.Println("I have no dice, but I must roll. Press CTRL-C to exit.")
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
-	<-sc
 }
 
-func fmtSay(s *discordgo.Session, m *discordgo.MessageCreate, msg string, args ...interface{}) {
-	s.ChannelMessageSend(m.ChannelID, fmt.Sprintf(msg, args...))
-}
-
+/*
 func handleRollRequest(s *discordgo.Session, m *discordgo.MessageCreate) {
 	p := Player{
 		ID:   m.Author.ID,
@@ -90,10 +49,6 @@ func handleRollRequest(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	fmt.Printf("%s: %s\n", p.AtPlayer(), r.String())
 	fmtSay(s, m, fmt.Sprintf("%s: %s", p.AtPlayer(), r.String()))
-}
-
-func (p Player) AtPlayer() string {
-	return fmt.Sprintf("<@%s>", p.ID)
 }
 
 func handleShowLatest(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -152,4 +107,4 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case m.Content == "ping":
 		s.ChannelMessageSend(m.ChannelID, "Pong!")
 	}
-}
+}*/
