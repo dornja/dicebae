@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"dicebae/baepi"
+	"dicebae/player"
 	"dicebae/roll"
 
 	"github.com/bwmarrin/discordgo"
@@ -15,6 +16,9 @@ func (db *diceBae) initHandlers(args *Baergs) error {
 	db.addBaeSaysHandler("roll", roll.NewRollHandler())
 	db.addBaeSaysHandler("history", roll.NewHistoryHandler(10, "history"))
 	db.addBaeSaysHandler("latest", roll.NewHistoryHandler(1, "latest"))
+	if len(args.PlayerIDs) > 0 {
+		db.addBaeSaysHandler("player", player.NewPlayerHandler(args.PlayerIDs))
+	}
 	return nil
 }
 

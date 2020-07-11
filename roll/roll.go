@@ -57,6 +57,7 @@ func NewRollHandler() *RollHandler {
 		kelgwynFrustrator: rand.New(rand.NewSource(int64(time.Now().Nanosecond()))),
 	}
 }
+
 func (rh *RollHandler) ShouldSay(db baepi.DiceBae, e *baepi.Baevent) bool {
 	return len(rollRegexp.FindAllStringSubmatch(e.Message, -1)) > 0
 }

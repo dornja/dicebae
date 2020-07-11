@@ -18,8 +18,9 @@ import (
 
 // Baergs contains arguments for the creation of the bae.
 type Baergs struct {
-	APIKey string // Required.
-	LogDir string
+	APIKey    string // Required.
+	PlayerIDs []int
+	LogDir    string
 }
 
 // diceBae implements the DiceBae interface defined in the baepi.
@@ -41,11 +42,11 @@ func NewBae(args *Baergs) (baepi.DiceBae, error) {
 		session: dg,
 		history: make([]*baepi.BaeHistoryEntry, 0, 1024),
 	}
-	if err := db.initHandlers(args); err != nil {
-		return nil, fmt.Errorf("bae failed to init handlers: %v", err)
-	}
 	if err := db.initLogger(args.LogDir); err != nil {
 		return nil, fmt.Errorf("bae failed to init logger: %v", err)
+	}
+	if err := db.initHandlers(args); err != nil {
+		return nil, fmt.Errorf("bae failed to init handlers: %v", err)
 	}
 	return db, nil
 }
